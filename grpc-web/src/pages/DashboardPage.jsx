@@ -1,61 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Activity, StopCircle, TrendingUp, AlertCircle } from 'lucide-react';
 import RpsChart from '../components/RpsChart';
 import LatencyChart from '../components/LatencyChart';
 import StatusChart from '../components/StatusChart';
 
-export default function DashboardPage({ stats, running, onStop }) {
-  const [chartData, setChartData] = useState([]);
-  const [startTime, setStartTime] = useState(null);
-
-  // 테스트 시작 시간 기록
-  useEffect(() => {
-    if (stats && !startTime) {
-      setStartTime(Date.now());
-    }
-  }, [stats, startTime]);
-
-  // 테스트 종료 시 차트 초기화
-  useEffect(() => {
-    if (!running && !stats) {
-      setChartData([]);
-      setStartTime(null);
-    }
-  }, [running, stats]);
-
-  useEffect(() => {
-    if (stats) {
-      setChartData(prev => {
-        // 테스트 경과 시간 (초)
-        const elapsedSec = stats.testDurationSec || 0;
-
-        const newData = [...prev, {
-          time: `${elapsedSec}s`,
-          timeValue: elapsedSec, // 정렬/필터링용 숫자값
-          rps: stats.currentRps || 0,
-          latency: stats.avgLatencyMs || 0,
-          p95: stats.p95LatencyMs || 0,
-          success: stats.successCount || 0,
-          fail: stats.failCount || 0,
-        }];
-
-        // 중복 제거 (같은 초에 여러 번 업데이트되는 경우)
-        const uniqueData = newData.reduce((acc, curr) => {
-          const existing = acc.find(d => d.timeValue === curr.timeValue);
-          if (!existing) {
-            acc.push(curr);
-          } else {
-            // 같은 시간이면 최신 데이터로 교체
-            const index = acc.indexOf(existing);
-            acc[index] = curr;
-          }
-          return acc;
-        }, []);
-
-        return uniqueData;
-      });
-    }
-  }, [stats]);
+export default function DashboardPage({ stats, running, onStop, chartData }) {
 
   if (!stats) {
     return (

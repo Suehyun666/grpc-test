@@ -69,6 +69,7 @@ function AppContent() {
             stats={testConfig.stats}
             running={testConfig.running}
             onStop={testConfig.stopTest}
+            chartData={testConfig.chartData}
           />
         } />
       </Routes>

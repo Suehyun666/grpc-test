@@ -6,6 +6,9 @@ import PayloadFields from '../components/PayloadFields';
 import TestConsole from '../components/TestConsole';
 import MetadataConfig from '../components/MetadataConfig';
 import ResponseLogs from '../components/ResponseLogs';
+import RpsChart from '../components/RpsChart';
+import LatencyChart from '../components/LatencyChart';
+import StatusChart from '../components/StatusChart';
 
 export default function TestConfigPage(props) {
   return (
@@ -97,6 +100,16 @@ export default function TestConfigPage(props) {
           </div>
 
           <ResponseLogs logs={props.logs} />
+
+          {props.chartData && props.chartData.length > 0 && (
+            <>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <RpsChart data={props.chartData} />
+                <LatencyChart data={props.chartData} />
+              </div>
+              <StatusChart data={props.chartData} />
+            </>
+          )}
         </div>
       </div>
     </div>

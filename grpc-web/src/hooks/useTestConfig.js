@@ -23,6 +23,7 @@ export function useTestConfig() {
   const [running, setRunning] = useState(false);
   const [stats, setStats] = useState(null);
   const [logs, setLogs] = useState([]);
+  const [chartData, setChartData] = useState([]);
 
   useEffect(() => {
     configService.getServerConfig()
@@ -42,6 +43,43 @@ export function useTestConfig() {
     const time = now.toLocaleTimeString('ko-KR');
     setLogs(prev => [...prev, { status, message, details, time }]);
   };
+
+  useEffect(() => {
+    if (!running && !stats) {
+      setChartData([]);
+    }
+  }, [running, stats]);
+
+  useEffect(() => {
+    if (stats) {
+      setChartData(prev => {
+        const elapsedSec = stats.testDurationSec || 0;
+
+        const newData = [...prev, {
+          time: `${elapsedSec}s`,
+          timeValue: elapsedSec,
+          rps: stats.currentRps || 0,
+          latency: stats.avgLatencyMs || 0,
+          p95: stats.p95LatencyMs || 0,
+          success: stats.successCount || 0,
+          fail: stats.failCount || 0,
+        }];
+
+        const uniqueData = newData.reduce((acc, curr) => {
+          const existing = acc.find(d => d.timeValue === curr.timeValue);
+          if (!existing) {
+            acc.push(curr);
+          } else {
+            const index = acc.indexOf(existing);
+            acc[index] = curr;
+          }
+          return acc;
+        }, []);
+
+        return uniqueData;
+      });
+    }
+  }, [stats]);
 
   useEffect(() => {
     if (!running) return;
@@ -126,6 +164,7 @@ export function useTestConfig() {
   const startTest = async () => {
     setStats(null);
     setLogs([]);
+    setChartData([]);
 
     if (mode !== 'SINGLE' && mode !== 'BURST' && duration > 0 && timeout > 0 && duration < timeout) {
       const proceed = window.confirm(
@@ -230,6 +269,7 @@ export function useTestConfig() {
     running,
     stats,
     logs,
+    chartData,
     handleProtoUpload,
     handleMethodChange,
     startTest,
