@@ -27,34 +27,33 @@ public class FileUploadController {
 
             java.nio.file.Path tempDir = Files.createTempDirectory("gload_proto_");
 
-            String mainProtoPath = null;
+            List<String> protoFilePaths = new ArrayList<>();
 
             for (FileUpload file : files) {
                 String fileName = file.fileName();
                 java.nio.file.Path filePath = tempDir.resolve(fileName);
                 Files.copy(file.uploadedFile(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-                if (mainProtoPath == null && (fileName.toLowerCase().endsWith(".proto") || fileName.toLowerCase().endsWith(".grpc"))) {
-                    mainProtoPath = filePath.toAbsolutePath().toString();
+                if (fileName.toLowerCase().endsWith(".proto") || fileName.toLowerCase().endsWith(".grpc")) {
+                    protoFilePaths.add(filePath.toAbsolutePath().toString());
                 }
             }
 
-            if (mainProtoPath == null) {
+            if (protoFilePaths.isEmpty()) {
                 throw new IllegalArgumentException("No .proto or .grpc file found in upload");
             }
 
-            File protoFile = new File(mainProtoPath);
-            File descFile;
-
-            if (protoFile.getName().endsWith(".desc")) {
-                descFile = protoFile;
-            } else {
-                descFile = DynamicProtoCompiler.compileProtoToDesc(protoFile.toPath());
-            }
+            // Compile all proto files together into one descriptor
+            File descFile = DynamicProtoCompiler.compileProtoToDesc(
+                tempDir,
+                protoFilePaths.stream().map(p -> new File(p).toPath()).toList()
+            );
 
             Descriptors.FileDescriptor fileDescriptor = ProtoDescriptorLoader.load(descFile.getAbsolutePath());
 
             List<ServiceInfo> services = new ArrayList<>();
+            String firstProtoPath = protoFilePaths.get(0); // For response path field
+
             for (Descriptors.ServiceDescriptor serviceDesc : fileDescriptor.getServices()) {
                 ServiceInfo serviceInfo = new ServiceInfo();
                 serviceInfo.setName(serviceDesc.getName());
@@ -83,7 +82,7 @@ public class FileUploadController {
             }
 
             ProtoInfo protoInfo = new ProtoInfo();
-            protoInfo.setPath(mainProtoPath);
+            protoInfo.setPath(firstProtoPath);
             protoInfo.setServices(services);
 
             return protoInfo;
