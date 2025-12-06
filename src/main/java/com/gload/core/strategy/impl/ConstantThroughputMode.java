@@ -5,55 +5,40 @@ import com.gload.core.generator.PayloadGenerator;
 import com.gload.core.execution.TestModeContext;
 import com.gload.model.TestScenario;
 import com.gload.core.strategy.AbstractBaseMode;
+import com.gload.core.engine.RpsEngine;
 import com.google.protobuf.Descriptors;
-
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ConstantThroughputMode extends AbstractBaseMode {
 
-    private final AtomicBoolean running = new AtomicBoolean(false);
+    private RpsEngine rpsEngine;
 
     @Override
     public void execute(TestScenario scenario, Descriptors.MethodDescriptor methodDesc, GrpcClientPool clientPool, PayloadGenerator payloadGen, TestModeContext context) {
         this.context = context;
-        int vUsers = scenario.getLoadProfile().getVirtualUsers();
         int targetRps = scenario.getLoadProfile().getTargetRps();
+        int durationSec = (int) scenario.getLoadProfile().getDurationSec();
+        int workerThreads = scenario.getLoadProfile().getWorkerThreads();
 
-        if (vUsers <= 0) vUsers = 1;
         if (targetRps <= 0) targetRps = 1;
+        if (durationSec <= 0) durationSec = 60;
+        if (workerThreads <= 0) workerThreads = Math.max(4, Math.min(targetRps / 100, 32));
 
-        double rpsPerUser = (double) targetRps / vUsers;
-        long delayMs = rpsPerUser > 0 ? (long) (1000.0 / rpsPerUser) : 1000;
-        if (delayMs < 1) delayMs = 1;
+        System.out.printf("🎯 Constant Throughput Mode: Target %d RPS, Duration %d sec, Worker Threads %d%n",
+                targetRps, durationSec, workerThreads);
 
-        running.set(true);
+        rpsEngine = new RpsEngine(workerThreads);
 
-        System.out.printf("🎯 Start Constant Throughput Test: %d VUsers, Target %d RPS%n", vUsers, targetRps);
+        Runnable fireTask = () -> fireRequest(methodDesc, clientPool, payloadGen, context);
+        Runnable onFinish = context::finish;
 
-        for (int i = 0; i < vUsers; i++) {
-            startUserLoop(methodDesc, clientPool, payloadGen, context, delayMs);
-        }
-
-        // 시간 제한 설정 (종료 시 running=false가 되어 쓰레드 루프도 멈춤)
-        scheduleTermination(scenario, context);
-    }
-
-    private void startUserLoop(Descriptors.MethodDescriptor methodDesc, GrpcClientPool clientPool,
-                               PayloadGenerator payloadGen, TestModeContext context, long delayMs) {
-        new Thread(() -> {
-            while (running.get()) {
-                fireRequest(methodDesc, clientPool, payloadGen, context);
-                if (delayMs > 0) {
-                    try { Thread.sleep(delayMs); }
-                    catch (InterruptedException e) { Thread.currentThread().interrupt(); break; }
-                }
-            }
-        }).start();
+        rpsEngine.start(targetRps, durationSec, fireTask, onFinish);
     }
 
     @Override
     public void stop() {
-        running.set(false);
+        if (rpsEngine != null) {
+            rpsEngine.stop();
+        }
         super.stop();
     }
 }

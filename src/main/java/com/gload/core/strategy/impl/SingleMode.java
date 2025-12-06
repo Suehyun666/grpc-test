@@ -32,7 +32,6 @@ public class SingleMode extends AbstractBaseMode {
             @Override
             public void onNext(DynamicMessage value) {
                 long latency = System.currentTimeMillis() - start;
-                context.getCollector().recordSuccess(latency);
 
                 String responseBody = null;
                 try {
@@ -42,9 +41,11 @@ public class SingleMode extends AbstractBaseMode {
                     responseBody = "Parse Error: " + e.getMessage();
                     responseFuture.completeExceptionally(new RuntimeException("Failed to convert response: " + e.getMessage(), e));
                 }
+
+                context.getCollector().recordSuccess(latency, responseBody,
+                        context.getServiceName(), context.getMethodName());
                 context.getLogService().record(TransactionLog.success(reqId, latency, responseBody));
 
-                // [종료 신호] 응답 성공 시 종료
                 context.finish();
             }
 

@@ -57,7 +57,6 @@ public class BurstMode extends AbstractBaseMode {
                 @Override
                 public void onNext(DynamicMessage value) {
                     long latency = System.currentTimeMillis() - start;
-                    context.getCollector().recordSuccess(latency);
 
                     String responseBody = null;
                     try {
@@ -66,11 +65,13 @@ public class BurstMode extends AbstractBaseMode {
                         responseBody = "Parse Error: " + e.getMessage();
                     }
 
+                    context.getCollector().recordSuccess(latency, responseBody,
+                            context.getServiceName(), context.getMethodName());
+
                     context.getLogService().record(
                             TransactionLog.success(reqId, latency, responseBody)
                     );
 
-                    // 요청 완료 체크
                     checkCompletion();
                 }
 
