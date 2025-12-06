@@ -57,3 +57,12 @@ If you want to learn more about building native executables, please consult <htt
 
 - Camel Vert.x ([guide](https://camel.apache.org/camel-quarkus/latest/reference/extensions/vertx.html)): Send and
   receive messages to/from Vert.x Event Bus
+
+
+## Docker Run
+```shell script
+sudo docker run -d \
+  --name grpc-tester \
+  --net=host \
+  suehunpark/grpc-test:latest
+```
