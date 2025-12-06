@@ -5,8 +5,8 @@ import logo from '../assets/logo.svg';
 
 export default function Sidebar({ isDark, toggleTheme }) {
   const menuItems = [
-    { id: 'simulations', path: '/', icon: Zap, label: 'Simulations' },
-    { id: 'test', path: '/test', icon: Settings, label: 'Configuration' },
+    { id: 'test', path: '/', icon: Settings, label: 'Configuration' },
+    { id: 'simulations', path: '/simulations', icon: Zap, label: 'Simulations' },
     { id: 'dashboard', path: '/dashboard', icon: BarChart3, label: 'Reports' },
   ];
 

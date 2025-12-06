@@ -30,15 +30,12 @@ function AppContent() {
       testConfig.setDuration(sim.scenario.loadProfile.durationSec);
       testConfig.setRps(sim.scenario.loadProfile.targetRps);
     }
-    navigate('/test');
+    navigate('/');
   };
 
   const runSimulation = async (sim) => {
-    // 설정 로드
     loadSimulation(sim);
-    // 대시보드로 이동
     navigate('/dashboard');
-    // 짧은 딜레이 후 테스트 시작 (설정 로드 완료 대기)
     setTimeout(() => {
       testConfig.startTest();
     }, 100);
@@ -53,18 +50,18 @@ function AppContent() {
     <Layout>
       <Routes>
         <Route path="/" element={
+          <TestConfigPage
+            {...testConfig}
+            saveSimulation={handleSaveSimulation}
+          />
+        } />
+        <Route path="/simulations" element={
           <SimulationsPage
             simulations={simulations}
             onLoad={loadSimulation}
             onRun={runSimulation}
             onDelete={deleteSimulation}
-            onNew={() => navigate('/test')}
-          />
-        } />
-        <Route path="/test" element={
-          <TestConfigPage
-            {...testConfig}
-            saveSimulation={handleSaveSimulation}
+            onNew={() => navigate('/')}
           />
         } />
         <Route path="/dashboard" element={

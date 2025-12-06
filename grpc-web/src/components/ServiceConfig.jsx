@@ -69,9 +69,14 @@ export default function ServiceConfig({
           <select
             value={selectedService}
             onChange={(e) => {
-              setSelectedService(e.target.value);
-              const svc = services.find(s => s.name === e.target.value);
-              setMethods(svc?.methods.map(m => m.name) || []);
+              const serviceName = e.target.value;
+              setSelectedService(serviceName);
+              const svc = services.find(s => s.name === serviceName);
+              const methodNames = svc?.methods.map(m => m.name) || [];
+              setMethods(methodNames);
+              if (methodNames.length > 0) {
+                onMethodChange(methodNames[0]);
+              }
             }}
             className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           >
