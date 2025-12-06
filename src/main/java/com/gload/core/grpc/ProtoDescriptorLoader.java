@@ -19,27 +19,43 @@ import java.util.Map;
  */
 public class ProtoDescriptorLoader {
 
-    /**
-     * .desc 파일에서 FileDescriptor 로드
-     */
     public static Descriptors.FileDescriptor load(String descFilePath) throws IOException, Descriptors.DescriptorValidationException {
         try (FileInputStream fis = new FileInputStream(descFilePath)) {
             DescriptorProtos.FileDescriptorSet descriptorSet =
                     DescriptorProtos.FileDescriptorSet.parseFrom(fis);
 
-            // 1. 파일 이름으로 Proto 정보 인덱싱
             Map<String, DescriptorProtos.FileDescriptorProto> protoMap = new HashMap<>();
             for (DescriptorProtos.FileDescriptorProto fdProto : descriptorSet.getFileList()) {
                 protoMap.put(fdProto.getName(), fdProto);
             }
 
-            // 2. 이미 빌드된 Descriptor 캐시
             Map<String, Descriptors.FileDescriptor> cache = new HashMap<>();
 
-            // 3. 마지막 파일(주로 Main 파일)을 기준으로 빌드 시작
             DescriptorProtos.FileDescriptorProto mainProto = descriptorSet.getFile(descriptorSet.getFileCount() - 1);
 
             return buildFileDescriptor(mainProto.getName(), protoMap, cache);
+        }
+    }
+
+    public static List<Descriptors.FileDescriptor> loadAll(String descFilePath) throws IOException, Descriptors.DescriptorValidationException {
+        try (FileInputStream fis = new FileInputStream(descFilePath)) {
+            DescriptorProtos.FileDescriptorSet descriptorSet =
+                    DescriptorProtos.FileDescriptorSet.parseFrom(fis);
+
+            Map<String, DescriptorProtos.FileDescriptorProto> protoMap = new HashMap<>();
+            for (DescriptorProtos.FileDescriptorProto fdProto : descriptorSet.getFileList()) {
+                protoMap.put(fdProto.getName(), fdProto);
+            }
+
+            Map<String, Descriptors.FileDescriptor> cache = new HashMap<>();
+            List<Descriptors.FileDescriptor> allDescriptors = new ArrayList<>();
+
+            for (DescriptorProtos.FileDescriptorProto fdProto : descriptorSet.getFileList()) {
+                Descriptors.FileDescriptor fd = buildFileDescriptor(fdProto.getName(), protoMap, cache);
+                allDescriptors.add(fd);
+            }
+
+            return allDescriptors;
         }
     }
 
@@ -76,9 +92,6 @@ public class ProtoDescriptorLoader {
         return fd;
     }
 
-    /**
-     * FileDescriptor에서 특정 서비스의 메서드 찾기
-     */
     public static Descriptors.MethodDescriptor findMethod(
             Descriptors.FileDescriptor fileDescriptor,
             String serviceName,
@@ -95,6 +108,25 @@ public class ProtoDescriptorLoader {
         }
 
         return methodDescriptor;
+    }
+
+    public static Descriptors.MethodDescriptor findMethod(
+            List<Descriptors.FileDescriptor> fileDescriptors,
+            String serviceName,
+            String methodName) {
+
+        for (Descriptors.FileDescriptor fd : fileDescriptors) {
+            Descriptors.ServiceDescriptor serviceDescriptor = fd.findServiceByName(serviceName);
+            if (serviceDescriptor != null) {
+                Descriptors.MethodDescriptor methodDescriptor = serviceDescriptor.findMethodByName(methodName);
+                if (methodDescriptor == null) {
+                    throw new IllegalArgumentException("Method not found: " + methodName);
+                }
+                return methodDescriptor;
+            }
+        }
+
+        throw new IllegalArgumentException("Service not found: " + serviceName);
     }
 
     /**

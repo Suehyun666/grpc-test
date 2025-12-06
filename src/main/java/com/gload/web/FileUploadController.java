@@ -43,18 +43,17 @@ public class FileUploadController {
                 throw new IllegalArgumentException("No .proto or .grpc file found in upload");
             }
 
-            // Compile all proto files together into one descriptor
             File descFile = DynamicProtoCompiler.compileProtoToDesc(
                 tempDir,
                 protoFilePaths.stream().map(p -> new File(p).toPath()).toList()
             );
 
-            Descriptors.FileDescriptor fileDescriptor = ProtoDescriptorLoader.load(descFile.getAbsolutePath());
+            List<Descriptors.FileDescriptor> fileDescriptors = ProtoDescriptorLoader.loadAll(descFile.getAbsolutePath());
 
             List<ServiceInfo> services = new ArrayList<>();
-            String firstProtoPath = protoFilePaths.get(0); // For response path field
 
-            for (Descriptors.ServiceDescriptor serviceDesc : fileDescriptor.getServices()) {
+            for (Descriptors.FileDescriptor fd : fileDescriptors) {
+                for (Descriptors.ServiceDescriptor serviceDesc : fd.getServices()) {
                 ServiceInfo serviceInfo = new ServiceInfo();
                 serviceInfo.setName(serviceDesc.getName());
 
@@ -79,10 +78,11 @@ public class FileUploadController {
                 }
                 serviceInfo.setMethods(methods);
                 services.add(serviceInfo);
+                }
             }
 
             ProtoInfo protoInfo = new ProtoInfo();
-            protoInfo.setPath(firstProtoPath);
+            protoInfo.setPath(tempDir.toAbsolutePath().toString());
             protoInfo.setServices(services);
 
             return protoInfo;

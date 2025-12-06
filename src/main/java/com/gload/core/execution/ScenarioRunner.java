@@ -37,7 +37,11 @@ public class ScenarioRunner {
     private String currentSimulationId;
 
     public void start(TestScenario scenario, Descriptors.FileDescriptor fd) throws IOException {
-        stop(); // 기존 실행 중인게 있으면 정지
+        start(scenario, java.util.List.of(fd));
+    }
+
+    public void start(TestScenario scenario, java.util.List<Descriptors.FileDescriptor> fds) throws IOException {
+        stop();
         collector = new StatisticsCollector();
 
         currentSimulationId = "sim_" + System.currentTimeMillis();
@@ -49,7 +53,7 @@ public class ScenarioRunner {
         logService.startLogging(currentSimulationId, logLevel);
 
         Descriptors.MethodDescriptor methodDesc = ProtoDescriptorLoader.findMethod(
-                fd, scenario.getServiceName(), scenario.getMethodName());
+                fds, scenario.getServiceName(), scenario.getMethodName());
 
         String[] parts = scenario.getEndpoint().split(":");
         clientPool = new GrpcClientPool(

@@ -13,8 +13,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -25,32 +24,45 @@ public class TestController {
 
     @Inject ScenarioRunner runner;
 
-    private Descriptors.FileDescriptor currentFd;
+    private List<Descriptors.FileDescriptor> currentFds;
 
     @POST
     @Path("/start")
     public Response startTest(TestScenario scenario) {
         try {
-            File protoFile = new File(scenario.getProtoFilePath());
+            File path = new File(scenario.getProtoFilePath());
 
-            if (!protoFile.exists()) {
+            if (!path.exists()) {
                 return Response.status(400)
-                    .entity(Map.of("status", "error", "message", "Proto file not found: " + scenario.getProtoFilePath()))
+                    .entity(Map.of("status", "error", "message", "Proto path not found: " + scenario.getProtoFilePath()))
                     .build();
             }
 
             File descFile;
-            if (protoFile.getName().endsWith(".proto")) {
-                descFile = DynamicProtoCompiler.compileProtoToDesc(protoFile.toPath());
-            } else if (protoFile.getName().endsWith(".grpc")) {
-                descFile = DynamicProtoCompiler.compileProtoToDesc(protoFile.toPath());
+            if (path.isDirectory()) {
+                File[] protoFiles = path.listFiles((dir, name) ->
+                    name.endsWith(".proto") || name.endsWith(".grpc"));
+
+                if (protoFiles == null || protoFiles.length == 0) {
+                    return Response.status(400)
+                        .entity(Map.of("status", "error", "message", "No proto files found in directory"))
+                        .build();
+                }
+
+                List<java.nio.file.Path> protoPaths = new ArrayList<>();
+                for (File f : protoFiles) {
+                    protoPaths.add(f.toPath());
+                }
+                descFile = DynamicProtoCompiler.compileProtoToDesc(path.toPath(), protoPaths);
+            } else if (path.getName().endsWith(".proto") || path.getName().endsWith(".grpc")) {
+                descFile = DynamicProtoCompiler.compileProtoToDesc(path.toPath());
             } else {
-                descFile = protoFile;
+                descFile = path;
             }
 
-            currentFd = ProtoDescriptorLoader.load(descFile.getAbsolutePath());
+            currentFds = ProtoDescriptorLoader.loadAll(descFile.getAbsolutePath());
 
-            runner.start(scenario, currentFd);
+            runner.start(scenario, currentFds);
 
             if (scenario.getLoadProfile().getMode() == Mode.SINGLE) {
                 try {
