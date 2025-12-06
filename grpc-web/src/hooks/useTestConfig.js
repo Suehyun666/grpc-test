@@ -22,6 +22,7 @@ export function useTestConfig() {
   const [fields, setFields] = useState([]);
   const [running, setRunning] = useState(false);
   const [stats, setStats] = useState(null);
+  const [logs, setLogs] = useState([]);
 
   useEffect(() => {
     configService.getServerConfig()
@@ -36,29 +37,36 @@ export function useTestConfig() {
     }
   }, [mode]);
 
+  const addLog = (status, message, details = '') => {
+    const now = new Date();
+    const time = now.toLocaleTimeString('ko-KR');
+    setLogs(prev => [...prev, { status, message, details, time }]);
+  };
+
   useEffect(() => {
     if (!running) return;
     const interval = setInterval(() => {
       testService.getDetailedStats()
         .then(stats => {
           setStats(stats);
-          
-          // 디버깅용 로그
-          console.log('📊 Stats received:', { 
-            isRunning: stats.isRunning, 
-            mode, 
+
+          console.log('📊 Stats received:', {
+            isRunning: stats.isRunning,
+            mode,
             successCount: stats.successCount,
             failCount: stats.failCount
           });
-          
-          // 핵심: 백엔드가 멈췄으면 (isRunning: false) 프론트엔드도 멈춤
-          // SINGLE만 응답으로 처리하고, 나머지는 다 여기서 멈춤
+
           if (stats.isRunning === false && mode !== 'SINGLE') {
             console.log('🛑 Server signaled finish. Stopping UI.');
+            addLog('STOPPED', 'Test stopped', `Total: ${stats.totalRequests || 0} requests`);
             setRunning(false);
           }
         })
-        .catch(err => console.error('Failed to get stats:', err));
+        .catch(err => {
+          console.error('Failed to get stats:', err);
+          addLog('ERROR', 'Failed to fetch stats', err.message);
+        });
     }, 1000);
     return () => clearInterval(interval);
   }, [running, mode]);
@@ -117,8 +125,8 @@ export function useTestConfig() {
 
   const startTest = async () => {
     setStats(null);
+    setLogs([]);
 
-    // 검증: duration < timeout인 경우 경고 (BURST 모드 제외 - duration 불필요)
     if (mode !== 'SINGLE' && mode !== 'BURST' && duration > 0 && timeout > 0 && duration < timeout) {
       const proceed = window.confirm(
         `Warning: Duration (${duration}s) is shorter than Timeout (${timeout}s).\n` +
@@ -128,7 +136,6 @@ export function useTestConfig() {
       if (!proceed) return;
     }
 
-    // workerThreads 계산: 0이면 vusers 기반 자동 계산, 아니면 설정값 사용
     const calculatedWorkerThreads = workerThreads > 0 ? workerThreads : Math.max(4, Math.min(vusers, 32));
 
     const finalProtoPath = serverProtoPath || protoFile?.name;
@@ -150,6 +157,7 @@ export function useTestConfig() {
       }, {})
     };
 
+    addLog('RUNNING', 'Test started', `${selectedService}.${selectedMethod} @ ${endpoint}`);
     setRunning(true);
 
     try {
@@ -157,22 +165,22 @@ export function useTestConfig() {
 
       if (result.status === 'completed') {
         setStats(result.stats);
+        addLog('SUCCESS', 'Test completed', `Success: ${result.stats.successCount}, Failed: ${result.stats.failCount}`);
       }
-      
-      // SINGLE만 즉시 종료합니다. 
-      // BURST는 "Started" 상태만 받고 백그라운드에서 돌기 때문에 여기서 끄면 안 됩니다.
-      // 폴링에서 isRunning: false 신호를 받을 때까지 계속 실행 중으로 유지합니다.
+
       if (mode === 'SINGLE') {
         setRunning(false);
       }
     } catch (error) {
       console.error('Test failed:', error);
+      addLog('ERROR', 'Test failed', error.message);
       alert('Error: ' + error.message);
       setRunning(false);
     }
   };
 
   const stopTest = async () => {
+    addLog('STOPPED', 'Test manually stopped', 'User requested stop');
     setRunning(false);
     await testService.stopTest();
   };
@@ -221,6 +229,7 @@ export function useTestConfig() {
     setFields,
     running,
     stats,
+    logs,
     handleProtoUpload,
     handleMethodChange,
     startTest,

@@ -5,6 +5,7 @@ import LoadProfile from '../components/LoadProfile';
 import PayloadFields from '../components/PayloadFields';
 import TestConsole from '../components/TestConsole';
 import MetadataConfig from '../components/MetadataConfig';
+import ResponseLogs from '../components/ResponseLogs';
 
 export default function TestConfigPage(props) {
   return (
@@ -94,6 +95,8 @@ export default function TestConfigPage(props) {
             <h3 className="text-lg font-semibold mb-6 card-title border-b pb-3">Test Console</h3>
             <TestConsole stats={props.stats} running={props.running} />
           </div>
+
+          <ResponseLogs logs={props.logs} />
         </div>
       </div>
     </div>

@@ -1,10 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, X } from 'lucide-react';
 
 export default function MetadataConfig({ metadata, setMetadata }) {
   const [entries, setEntries] = useState(
     Object.entries(metadata || {}).map(([key, value]) => ({ key, value }))
   );
+
+  useEffect(() => {
+    const newEntries = Object.entries(metadata || {}).map(([key, value]) => ({ key, value }));
+    if (newEntries.length === 0 && entries.length === 0) return;
+    setEntries(newEntries);
+  }, [metadata]);
 
   const addEntry = () => {
     setEntries([...entries, { key: '', value: '' }]);
