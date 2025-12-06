@@ -1,5 +1,6 @@
 package com.gload.web;
 
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import java.io.File;
@@ -9,6 +10,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@ApplicationScoped
 @Path("/api/logs")
 @Produces(MediaType.APPLICATION_JSON)
 public class LogController {
