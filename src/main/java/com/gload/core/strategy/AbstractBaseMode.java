@@ -30,7 +30,6 @@ public abstract class AbstractBaseMode implements TestModeStrategy {
             @Override
             public void onNext(DynamicMessage value) {
                 long latency = System.currentTimeMillis() - start;
-                context.getCollector().recordSuccess(latency);
 
                 String responseBody = null;
                 try {
@@ -38,6 +37,9 @@ public abstract class AbstractBaseMode implements TestModeStrategy {
                 } catch (Exception e) {
                     responseBody = "Parse Error: " + e.getMessage();
                 }
+
+                context.getCollector().recordSuccess(latency, responseBody,
+                        context.getServiceName(), context.getMethodName());
 
                 context.getLogService().record(
                         TransactionLog.success(reqId, latency, responseBody)

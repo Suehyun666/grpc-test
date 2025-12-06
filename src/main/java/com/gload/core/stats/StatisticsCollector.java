@@ -16,6 +16,9 @@ public class StatisticsCollector {
     private final Map<String, AtomicLong> errorTypes = new HashMap<>();
     private final Queue<RequestMetric> recentErrors = new ConcurrentLinkedQueue<>();
 
+    // 성공 응답 집계
+    private final Queue<RequestMetric> recentResponses = new ConcurrentLinkedQueue<>();
+
     // RPS 집계
     private final Map<Long, AtomicLong> rpsPerSecond = new HashMap<>();
 
@@ -28,9 +31,25 @@ public class StatisticsCollector {
     public long nextRequestId() { return requestIdCounter.incrementAndGet(); }
 
     public void recordSuccess(long latencyMs) {
+        recordSuccess(latencyMs, null, null, null);
+    }
+
+    public void recordSuccess(long latencyMs, String responseData, String service, String method) {
         successCount.incrementAndGet();
         histogram.recordValue(latencyMs);
         recordRps();
+
+        if (responseData != null) {
+            long reqId = requestIdCounter.get();
+            long timestamp = System.currentTimeMillis();
+            RequestMetric metric = new RequestMetric(reqId, timestamp, latencyMs, true);
+            metric.setResponseData(responseData);
+            metric.setServiceName(service);
+            metric.setMethodName(method);
+
+            recentResponses.offer(metric);
+            if (recentResponses.size() > 50) recentResponses.poll();
+        }
     }
 
     public void recordFailure(long reqId, long timestamp, long latencyMs, Throwable t, String service, String method) {
@@ -94,6 +113,7 @@ public class StatisticsCollector {
             stats.setErrorTypes(errors);
         }
         stats.setRecentErrors(new ConcurrentLinkedQueue<>(recentErrors));
+        stats.setRecentResponses(new ConcurrentLinkedQueue<>(recentResponses));
         return stats;
     }
 }

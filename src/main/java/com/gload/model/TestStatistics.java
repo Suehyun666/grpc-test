@@ -28,8 +28,11 @@ public class TestStatistics {
     // 에러 상세
     private Map<String, Long> errorTypes;
 
-    // 최근 에러 (최대 100개)
+    // 최근 에러 (최대 50개)
     private Queue<RequestMetric> recentErrors;
+
+    // 최근 성공 응답 (최대 50개)
+    private Queue<RequestMetric> recentResponses;
 
     // 시간대별 RPS (최근 60초)
     private Map<Long, Long> rpsHistory;
@@ -37,6 +40,7 @@ public class TestStatistics {
     public TestStatistics() {
         this.errorTypes = new HashMap<>();
         this.recentErrors = new ConcurrentLinkedQueue<>();
+        this.recentResponses = new ConcurrentLinkedQueue<>();
         this.rpsHistory = new LinkedHashMap<>();
         this.minLatencyMs = Long.MAX_VALUE;
         this.maxLatencyMs = 0;
@@ -86,6 +90,9 @@ public class TestStatistics {
 
     public Queue<RequestMetric> getRecentErrors() { return recentErrors; }
     public void setRecentErrors(Queue<RequestMetric> recentErrors) { this.recentErrors = recentErrors; }
+
+    public Queue<RequestMetric> getRecentResponses() { return recentResponses; }
+    public void setRecentResponses(Queue<RequestMetric> recentResponses) { this.recentResponses = recentResponses; }
 
     public Map<Long, Long> getRpsHistory() { return rpsHistory; }
     public void setRpsHistory(Map<Long, Long> rpsHistory) { this.rpsHistory = rpsHistory; }

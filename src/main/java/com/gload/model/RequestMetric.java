@@ -12,6 +12,7 @@ public class RequestMetric {
     private String errorMessage;
     private String serviceName;
     private String methodName;
+    private String responseData;
 
     public RequestMetric(long requestId, long timestamp, long latencyMs, boolean success) {
         this.requestId = requestId;
@@ -44,4 +45,7 @@ public class RequestMetric {
 
     public String getMethodName() { return methodName; }
     public void setMethodName(String methodName) { this.methodName = methodName; }
+
+    public String getResponseData() { return responseData; }
+    public void setResponseData(String responseData) { this.responseData = responseData; }
 }
