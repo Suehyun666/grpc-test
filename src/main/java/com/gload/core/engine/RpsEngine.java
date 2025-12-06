@@ -11,12 +11,39 @@ public class RpsEngine {
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
     private Thread dispatcherThread;
     private Runnable onFinishCallback;
+    private final boolean useVirtualThreads;
 
     public RpsEngine(int workerThreads) {
-        if (workerThreads > 0) {
-            this.workerExecutor = Executors.newFixedThreadPool(workerThreads);
+        this.useVirtualThreads = isVirtualThreadsSupported();
+
+        if (useVirtualThreads) {
+            this.workerExecutor = createVirtualThreadExecutor();
+            System.out.println("✨ Using Virtual Threads for high performance");
         } else {
-            this.workerExecutor = Executors.newCachedThreadPool();
+            if (workerThreads > 0) {
+                this.workerExecutor = Executors.newFixedThreadPool(workerThreads);
+            } else {
+                this.workerExecutor = Executors.newCachedThreadPool();
+            }
+        }
+    }
+
+    private boolean isVirtualThreadsSupported() {
+        try {
+            Class.forName("java.lang.Thread$Builder");
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private ExecutorService createVirtualThreadExecutor() {
+        try {
+            var method = Executors.class.getMethod("newVirtualThreadPerTaskExecutor");
+            return (ExecutorService) method.invoke(null);
+        } catch (Exception e) {
+            return Executors.newCachedThreadPool();
         }
     }
 
@@ -34,8 +61,11 @@ public class RpsEngine {
             long nextRunTime = startTime;
             long endTime = durationSeconds > 0 ? startTime + (durationSeconds * 1_000_000_000L) : Long.MAX_VALUE;
 
-            System.out.printf("🚀 RPS Engine Started: Target %d RPS (interval: %.3f ms)%n",
-                    targetRps, intervalNanos / 1_000_000.0);
+            boolean useSpinWait = targetRps >= 5000;
+
+            System.out.printf("🚀 RPS Engine Started: Target %d RPS (interval: %.3f ms, %s)%n",
+                    targetRps, intervalNanos / 1_000_000.0,
+                    useSpinWait ? "Spin-Wait" : "Park-Wait");
 
             while (isRunning.get() && System.nanoTime() < endTime) {
                 long now = System.nanoTime();
@@ -46,7 +76,11 @@ public class RpsEngine {
                         nextRunTime += intervalNanos;
                     }
                 } else {
-                    LockSupport.parkNanos(100_000);
+                    if (useSpinWait) {
+                        Thread.onSpinWait();
+                    } else {
+                        LockSupport.parkNanos(1_000);
+                    }
                 }
             }
 
