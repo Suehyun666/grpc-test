@@ -3,6 +3,7 @@ package com.gload.web;
 import com.gload.core.grpc.DynamicProtoCompiler;
 import com.gload.core.grpc.ProtoDescriptorLoader;
 import com.google.protobuf.Descriptors;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import org.jboss.resteasy.reactive.RestForm;
@@ -13,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
 
+@ApplicationScoped
 @Path("/api/upload")
 @Produces(MediaType.APPLICATION_JSON)
 public class FileUploadController {

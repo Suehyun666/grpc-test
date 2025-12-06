@@ -7,6 +7,7 @@ import com.gload.model.TestStatistics;
 import com.gload.core.grpc.DynamicProtoCompiler;
 import com.gload.core.grpc.ProtoDescriptorLoader;
 import com.google.protobuf.Descriptors;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -17,6 +18,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+@ApplicationScoped
 @Path("/api")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
