@@ -2,6 +2,7 @@ package com.gload.web;
 
 import com.gload.model.Simulation;
 import com.gload.core.storage.SimulationStorage;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -10,6 +11,7 @@ import jakarta.ws.rs.core.Response;
 import java.util.List;
 import java.util.Map;
 
+@ApplicationScoped
 @Path("/api/simulations")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
