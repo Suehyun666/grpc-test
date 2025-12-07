@@ -1,9 +1,10 @@
 package com.gload.core.engine;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 public class BurstEngine {
 
@@ -41,7 +42,7 @@ public class BurstEngine {
         }
     }
 
-    public void fireBurst(int concurrentUsers, Runnable fireRequestTask, Runnable onComplete) {
+    public void fireBurst(int concurrentUsers, Supplier<CompletableFuture<Void>> fireRequestTask, Runnable onComplete) {
         if (isRunning.get()) {
             throw new IllegalStateException("BurstEngine is already running");
         }
@@ -62,10 +63,10 @@ public class BurstEngine {
         }, "Burst-Coordinator-Thread").start();
     }
 
-    private void runSingleBurst(int userCount, Runnable fireRequestTask) throws InterruptedException {
+    private void runSingleBurst(int userCount, Supplier<CompletableFuture<Void>> fireRequestTask) throws InterruptedException {
         CountDownLatch readyLatch = new CountDownLatch(userCount);
         CountDownLatch startLatch = new CountDownLatch(1);
-        CountDownLatch doneLatch = new CountDownLatch(userCount);
+        List<CompletableFuture<Void>> futures = new CopyOnWriteArrayList<>();
 
         System.out.println("💣 Burst Setup: " + userCount + " concurrent users");
 
@@ -75,14 +76,13 @@ public class BurstEngine {
                     readyLatch.countDown();
                     startLatch.await();
 
-                    fireRequestTask.run();
+                    CompletableFuture<Void> future = fireRequestTask.get();
+                    futures.add(future);
 
-                    doneLatch.countDown();
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    doneLatch.countDown();
                 } catch (Exception e) {
-                    doneLatch.countDown();
+                    e.printStackTrace();
                 }
             });
         }
@@ -93,10 +93,20 @@ public class BurstEngine {
         long startTime = System.nanoTime();
         startLatch.countDown();
 
-        doneLatch.await();
+        CompletableFuture<Void> allFutures = CompletableFuture.allOf(
+            futures.toArray(new CompletableFuture[0])
+        );
+
+        try {
+            allFutures.get();
+        } catch (ExecutionException e) {
+            System.err.println("⚠️ Some requests failed: " + e.getMessage());
+        }
+
         long endTime = System.nanoTime();
 
-        System.out.printf("✅ Burst Finished in %.2f ms%n", (endTime - startTime) / 1_000_000.0);
+        System.out.printf("✅ Burst Finished: %d requests completed in %.2f ms%n",
+                userCount, (endTime - startTime) / 1_000_000.0);
     }
 
     public void stop() {

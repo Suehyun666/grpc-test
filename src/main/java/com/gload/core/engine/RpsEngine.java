@@ -1,9 +1,11 @@
 package com.gload.core.engine;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.Supplier;
 
 public class RpsEngine {
 
@@ -47,7 +49,7 @@ public class RpsEngine {
         }
     }
 
-    public void start(int targetRps, int durationSeconds, Runnable fireRequestTask, Runnable onFinish) {
+    public void start(int targetRps, int durationSeconds, Supplier<CompletableFuture<Void>> fireRequestTask, Runnable onFinish) {
         if (isRunning.get()) {
             throw new IllegalStateException("RpsEngine is already running");
         }
@@ -72,7 +74,7 @@ public class RpsEngine {
 
                 if (now >= nextRunTime) {
                     while (now >= nextRunTime) {
-                        workerExecutor.submit(fireRequestTask);
+                        workerExecutor.submit(() -> fireRequestTask.get());
                         nextRunTime += intervalNanos;
                     }
                 } else {

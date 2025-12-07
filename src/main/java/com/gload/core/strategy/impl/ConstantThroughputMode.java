@@ -7,6 +7,8 @@ import com.gload.model.TestScenario;
 import com.gload.core.strategy.AbstractBaseMode;
 import com.gload.core.engine.RpsEngine;
 import com.google.protobuf.Descriptors;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 public class ConstantThroughputMode extends AbstractBaseMode {
 
@@ -28,7 +30,7 @@ public class ConstantThroughputMode extends AbstractBaseMode {
 
         rpsEngine = new RpsEngine(workerThreads);
 
-        Runnable fireTask = () -> fireRequest(methodDesc, clientPool, payloadGen, context);
+        Supplier<CompletableFuture<Void>> fireTask = () -> fireRequest(methodDesc, clientPool, payloadGen, context);
         Runnable onFinish = context::finish;
 
         rpsEngine.start(targetRps, durationSec, fireTask, onFinish);

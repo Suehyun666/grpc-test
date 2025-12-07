@@ -9,18 +9,20 @@ import com.gload.model.TestScenario;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import io.grpc.stub.StreamObserver;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class AbstractBaseMode implements TestModeStrategy {
     protected final AtomicLong timerId = new AtomicLong(-1);
     protected TestModeContext context;
 
-    protected void fireRequest(
+    protected CompletableFuture<Void> fireRequest(
             Descriptors.MethodDescriptor methodDesc,
             GrpcClientPool clientPool,
             PayloadGenerator payloadGen,
             TestModeContext context) {
 
+        CompletableFuture<Void> future = new CompletableFuture<>();
         DynamicGrpcInvoker invoker = new DynamicGrpcInvoker(clientPool.getChannel());
         String jsonPayload = payloadGen.generateJson();
         long reqId = context.getCollector().nextRequestId();
@@ -44,6 +46,8 @@ public abstract class AbstractBaseMode implements TestModeStrategy {
                 context.getLogService().record(
                         TransactionLog.success(reqId, latency, responseBody)
                 );
+
+                future.complete(null);
             }
 
             @Override
@@ -55,11 +59,15 @@ public abstract class AbstractBaseMode implements TestModeStrategy {
                 context.getLogService().record(
                         TransactionLog.error(reqId, latency, t.getMessage())
                 );
+
+                future.completeExceptionally(t);
             }
 
             @Override
             public void onCompleted() {}
         });
+
+        return future;
     }
 
     @Override

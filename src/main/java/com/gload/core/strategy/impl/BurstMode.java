@@ -7,6 +7,8 @@ import com.gload.core.strategy.AbstractBaseMode;
 import com.gload.core.engine.BurstEngine;
 import com.gload.model.TestScenario;
 import com.google.protobuf.Descriptors;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 public class BurstMode extends AbstractBaseMode {
 
@@ -24,7 +26,7 @@ public class BurstMode extends AbstractBaseMode {
 
         burstEngine = new BurstEngine();
 
-        Runnable fireTask = () -> fireRequest(methodDesc, clientPool, payloadGen, context);
+        Supplier<CompletableFuture<Void>> fireTask = () -> fireRequest(methodDesc, clientPool, payloadGen, context);
         Runnable onComplete = context::finish;
 
         burstEngine.fireBurst(burstSize, fireTask, onComplete);
