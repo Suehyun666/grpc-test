@@ -44,17 +44,37 @@ export default function PayloadFields({ fields, setFields, serverConfig }) {
             </select>
 
             {f.mode === 'fixed' && (
-              <input
-                type="text"
-                value={f.value}
-                onChange={(e) => {
-                  const newFields = [...fields];
-                  newFields[i].value = e.target.value;
-                  setFields(newFields);
-                }}
-                placeholder="Enter value"
-                className="flex-1 px-4 py-2 border border-gray-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              />
+                f.type === 'ENUM' && f.enumValues && f.enumValues.length > 0 ? (
+                    // 1. ENUM 타입일 경우: 드롭다운(Select) 렌더링
+                    <select
+                        value={f.value}
+                        onChange={(e) => {
+                          const newFields = [...fields];
+                          newFields[i].value = e.target.value;
+                          setFields(newFields);
+                        }}
+                        className="flex-1 px-4 py-2 border border-gray-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      {f.enumValues.map((enumVal) => (
+                          <option key={enumVal} value={enumVal}>
+                            {enumVal}
+                          </option>
+                      ))}
+                    </select>
+                ) : (
+                    // 2. 일반 타입일 경우: 기존 텍스트 입력창(Input) 렌더링
+                    <input
+                        type="text"
+                        value={f.value}
+                        onChange={(e) => {
+                          const newFields = [...fields];
+                          newFields[i].value = e.target.value;
+                          setFields(newFields);
+                        }}
+                        placeholder="Enter value"
+                        className="flex-1 px-4 py-2 border border-gray-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                )
             )}
 
             {(f.mode === 'random_int' || f.mode === 'sequence' || f.mode === 'round_robin') && (

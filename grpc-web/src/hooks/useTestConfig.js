@@ -130,10 +130,13 @@ export function useTestConfig() {
           setFields(firstMethod.fields.map(f => ({
             name: f.name,
             type: f.type,
-            value: '',
+            value: (f.type === 'ENUM' && f.enumValues && f.enumValues.length > 0)
+                ? f.enumValues[0]
+                : '',
             mode: 'fixed',
             min: 1,
-            max: 1000
+            max: 1000,
+            enumValues: f.enumValues || []
           })));
         }
       }
@@ -155,7 +158,8 @@ export function useTestConfig() {
           value: '',
           mode: 'fixed',
           min: 1,
-          max: 1000
+          max: 1000,
+          enumValues: f.enumValues || []
         })));
       }
     }

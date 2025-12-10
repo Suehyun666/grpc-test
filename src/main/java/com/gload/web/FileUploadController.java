@@ -72,6 +72,13 @@ public class FileUploadController {
                         fieldInfo.setName(fieldDesc.getName());
                         fieldInfo.setType(fieldDesc.getType().name());
                         fieldInfo.setRepeated(fieldDesc.isRepeated());
+                        if (fieldDesc.getJavaType() == Descriptors.FieldDescriptor.JavaType.ENUM) {
+                            List<String> enums = new ArrayList<>();
+                            for (Descriptors.EnumValueDescriptor enumValue : fieldDesc.getEnumType().getValues()) {
+                                enums.add(enumValue.getName());
+                            }
+                            fieldInfo.setEnumValues(enums);
+                        }
                         fields.add(fieldInfo);
                     }
                     methodInfo.setFields(fields);
@@ -140,6 +147,7 @@ public class FileUploadController {
         private String name;
         private String type;
         private boolean repeated;
+        private List<String> enumValues;
 
         public String getName() { return name; }
         public void setName(String name) { this.name = name; }
@@ -149,5 +157,8 @@ public class FileUploadController {
 
         public boolean isRepeated() { return repeated; }
         public void setRepeated(boolean repeated) { this.repeated = repeated; }
+
+        public List<String> getEnumValues() { return enumValues; }
+        public void setEnumValues(List<String> enumValues) { this.enumValues = enumValues; }
     }
 }
